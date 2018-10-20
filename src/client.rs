@@ -221,7 +221,7 @@ impl<S: Read + Write> Client<S> {
     }
 
     /// Append a song into a queue
-    pub fn push<P: ToSongPath>(&mut self, path: P) -> Result<Id> {
+    pub fn push(&mut self, path: &str) -> Result<Id> {
         self.run_command("addid", path).and_then(|_| self.read_field("Id")).map(Id)
     }
 
