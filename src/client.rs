@@ -119,7 +119,7 @@ impl<S: Read + Write> Client<S> {
     }
 
     /// Set crossfade time in seconds
-    pub fn crossfade<T: ToSeconds>(&mut self, value: T) -> Result<()> {
+    pub fn crossfade(&mut self, value: f64) -> Result<()> {
         self.run_command("crossfade", value.to_seconds()).and_then(|_| self.expect_ok())
     }
 
@@ -129,7 +129,7 @@ impl<S: Read + Write> Client<S> {
     }
 
     /// Set mixramp delay in seconds
-    pub fn mixrampdelay<T: ToSeconds>(&mut self, value: T) -> Result<()> {
+    pub fn mixrampdelay(&mut self, value: f64) -> Result<()> {
         self.run_command("mixrampdelay", value.to_seconds()).and_then(|_| self.expect_ok())
     }
 
@@ -146,8 +146,8 @@ impl<S: Read + Write> Client<S> {
     }
 
     /// Start playback from given song in a queue
-    pub fn switch<T: ToQueuePlace>(&mut self, place: T) -> Result<()> {
-        let command = if T::is_id() { "playid" } else { "play" };
+    pub fn switch(&mut self, place: u32) -> Result<()> {
+        let command = if place > 0 { "playid" } else { "play" };
         self.run_command(command, place.to_place()).and_then(|_| self.expect_ok())
     }
 
@@ -178,13 +178,13 @@ impl<S: Read + Write> Client<S> {
     }
 
     /// Seek to a given place (in seconds) in a given song
-    pub fn seek<T: ToSeconds, P: ToQueuePlace>(&mut self, place: P, pos: T) -> Result<()> {
-        let command = if P::is_id() { "seekid" } else { "seek" };
+    pub fn seek(&mut self, place: u32, pos: f64) -> Result<()> {
+        let command = if place > 0 { "seekid" } else { "seek" };
         self.run_command(command, (place.to_place(), pos.to_seconds())).and_then(|_| self.expect_ok())
     }
 
     /// Seek to a given place (in seconds) in the current song
-    pub fn rewind<T: ToSeconds>(&mut self, pos: T) -> Result<()> {
+    pub fn rewind(&mut self, pos: f64) -> Result<()> {
         self.run_command("seekcur", pos.to_seconds()).and_then(|_| self.expect_ok())
     }
     // }}}
@@ -226,7 +226,7 @@ impl<S: Read + Write> Client<S> {
     }
 
     /// Insert a song into a given position in a queue
-    pub fn insert<P: ToSongPath>(&mut self, path: P, pos: usize) -> Result<usize> {
+    pub fn insert(&mut self, path: &str, pos: usize) -> Result<usize> {
         self.run_command("addid", (path, pos)).and_then(|_| self.read_field("Id"))
     }
 
@@ -243,8 +243,8 @@ impl<S: Read + Write> Client<S> {
     }
 
     /// Swap to songs in a queue
-    pub fn swap<T: ToQueuePlace>(&mut self, one: T, two: T) -> Result<()> {
-        let command = if T::is_id() { "swapid" } else { "swap" };
+    pub fn swap(&mut self, one: u32, two: u32) -> Result<()> {
+        let command = if one > 0 && two > 0 { "swapid" } else { "swap" };
         self.run_command(command, (one.to_place(), two.to_place())).and_then(|_| self.expect_ok())
     }
 
@@ -306,7 +306,7 @@ impl<S: Read + Write> Client<S> {
     }
 
     /// List all songs in a playlist
-    pub fn playlist<N: ToPlaylistName>(&mut self, name: N) -> Result<Vec<Song>> {
+    pub fn playlist(&mut self, name: &str) -> Result<Vec<Song>> {
         self.run_command("listplaylistinfo", name.to_name()).and_then(|_| self.read_structs("file"))
     }
 
@@ -314,44 +314,44 @@ impl<S: Read + Write> Client<S> {
     ///
     /// You can give either full range (`..`) to load all songs in a playlist,
     /// or some partial range to load only part of playlist.
-    pub fn load<T: ToQueueRange, N: ToPlaylistName>(&mut self, name: N, range: T) -> Result<()> {
+    pub fn load<T: ToQueueRange>(&mut self, name: &str, range: T) -> Result<()> {
         self.run_command("load", (name.to_name(), range.to_range())).and_then(|_| self.expect_ok())
     }
 
     /// Save current queue into playlist
     ///
     /// If playlist with given name doesn't exist, create new one.
-    pub fn save<N: ToPlaylistName>(&mut self, name: N) -> Result<()> {
+    pub fn save(&mut self, name: &str) -> Result<()> {
         self.run_command("save", name.to_name()).and_then(|_| self.expect_ok())
     }
 
     /// Rename playlist
-    pub fn pl_rename<N: ToPlaylistName>(&mut self, name: N, newname: &str) -> Result<()> {
+    pub fn pl_rename(&mut self, name: &str, newname: &str) -> Result<()> {
         self.run_command("rename", (name.to_name(), newname)).and_then(|_| self.expect_ok())
     }
 
     /// Clear playlist
-    pub fn pl_clear<N: ToPlaylistName>(&mut self, name: N) -> Result<()> {
+    pub fn pl_clear(&mut self, name: &str) -> Result<()> {
         self.run_command("playlistclear", name.to_name()).and_then(|_| self.expect_ok())
     }
 
     /// Delete playlist
-    pub fn pl_remove<N: ToPlaylistName>(&mut self, name: N) -> Result<()> {
+    pub fn pl_remove(&mut self, name: &str) -> Result<()> {
         self.run_command("rm", name.to_name()).and_then(|_| self.expect_ok())
     }
 
     /// Add new songs to a playlist
-    pub fn pl_push<N: ToPlaylistName, P: ToSongPath>(&mut self, name: N, path: P) -> Result<()> {
+    pub fn pl_push(&mut self, name: &str, path: &str) -> Result<()> {
         self.run_command("playlistadd", (name.to_name(), path)).and_then(|_| self.expect_ok())
     }
 
     /// Delete a song at a given position in a playlist
-    pub fn pl_delete<N: ToPlaylistName>(&mut self, name: N, pos: u32) -> Result<()> {
+    pub fn pl_delete(&mut self, name: &str, pos: u32) -> Result<()> {
         self.run_command("playlistdelete", (name.to_name(), pos)).and_then(|_| self.expect_ok())
     }
 
     /// Move song in a playlist from one position into another
-    pub fn pl_shift<N: ToPlaylistName>(&mut self, name: N, from: u32, to: u32) -> Result<()> {
+    pub fn pl_shift(&mut self, name: &str, from: u32, to: u32) -> Result<()> {
         self.run_command("playlistmove", (name.to_name(), from, to)).and_then(|_| self.expect_ok())
     }
     // }}}
@@ -407,7 +407,7 @@ impl<S: Read + Write> Client<S> {
     }
 
     /// Lists the contents of a directory.
-    pub fn lsinfo<P: ToSongPath>(&mut self, path: P) -> Result<Song> {
+    pub fn lsinfo(&mut self, path: &str) -> Result<Song> {
         self.run_command("lsinfo", path).and_then(|_| self.read_struct())
     }
 
@@ -420,7 +420,7 @@ impl<S: Read + Write> Client<S> {
     }
 
     /// Set given output enabled state
-    pub fn output<T: ToOutputId>(&mut self, id: T, state: bool) -> Result<()> {
+    pub fn output(&mut self, id: u32, state: bool) -> Result<()> {
         if state {
             self.out_enable(id)
         } else {
@@ -429,17 +429,17 @@ impl<S: Read + Write> Client<S> {
     }
 
     /// Disable given output
-    pub fn out_disable<T: ToOutputId>(&mut self, id: T) -> Result<()> {
+    pub fn out_disable(&mut self, id: u32) -> Result<()> {
         self.run_command("disableoutput", id.to_output_id()).and_then(|_| self.expect_ok())
     }
 
     /// Enable given output
-    pub fn out_enable<T: ToOutputId>(&mut self, id: T) -> Result<()> {
+    pub fn out_enable(&mut self, id: u32) -> Result<()> {
         self.run_command("enableoutput", id.to_output_id()).and_then(|_| self.expect_ok())
     }
 
     /// Toggle given output
-    pub fn out_toggle<T: ToOutputId>(&mut self, id: T) -> Result<()> {
+    pub fn out_toggle(&mut self, id: u32) -> Result<()> {
         self.run_command("toggleoutput", id.to_output_id()).and_then(|_| self.expect_ok())
     }
     // }}}
